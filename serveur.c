@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <sys/select.h>
 #include <sys/time.h>
+#include <stdbool.h>
 
 #include "rtspanalyze.h"
 
@@ -15,6 +16,11 @@ void error(const char *msg)
 {
     perror(msg);
     exit(1);
+}
+
+void add_to_buffer(char *dest,char *src,bool endline){
+    strcat(dest,src);
+    if (endline) strcat(dest,"\n");
 }
 
 int main(int argc,char* argv[]){
@@ -93,13 +99,23 @@ int main(int argc,char* argv[]){
                     /**DECIDE WHAT TO DO*/
                         switch(rtspdata.method){
                             case OPTIONS:
+                                bzero(buffer,sizeof(buffer));
+                                add_to_buffer(buffer,"RTSP/1.0 200 OK",true);
+                                add_to_buffer(buffer,"Cseq: ",false);
+                                add_to_buffer(buffer,rtspdata.cseq,true);
+                                add_to_buffer(buffer,"Public: DESCRIBE, SETUP, TEARDOWN, PLAY, PAUSE\n",true);
+                                printf("about to send:\n%s",buffer);
                                 if((snd = send(acc,buffer,sizeof(buffer),0))<0) error("send error\n");
-                                if((rcv = recvfrom(acc,buffer,sizeof(buffer),0,(struct sockaddr *)&cli_addr,&clilen))<0) error("rcv error\n");
-                                if((snd = send(acc,buffer,sizeof(buffer),0))<0) error("send error\n");
-                                /**little error 405 but aparently doesn't prevent the describe from being sent later on*/
-                                break;
-                            case DESCRIBE:
+                                /*Response    =     Status-Line
+                                             *(    general-header
+                                             |     response-header
+                                             |     entity-header )
+                                                   CRLF
+                                                   [ message-body ]
 
+                                Status-Line =   RTSP-Version SP Status-Code SP Reason-Phrase CRLF
+                                break;*/
+                            case DESCRIBE:
                                 break;
                             case PLAY:
                                 break;
