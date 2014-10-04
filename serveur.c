@@ -20,7 +20,7 @@ void error(const char *msg)
 
 void add_to_buffer(char *dest,char *src,bool endline){
     strcat(dest,src);
-    if (endline) strcat(dest,"\n");
+    if (endline) strcat(dest,"\r\n");
 }
 
 int main(int argc,char* argv[]){
@@ -103,7 +103,7 @@ int main(int argc,char* argv[]){
                                 add_to_buffer(buffer,"RTSP/1.0 200 OK",true);
                                 add_to_buffer(buffer,"Cseq: ",false);
                                 add_to_buffer(buffer,rtspdata.cseq,true);
-                                add_to_buffer(buffer,"Public: DESCRIBE, SETUP, TEARDOWN, PLAY, PAUSE\n",true);
+                                add_to_buffer(buffer,"Public: DESCRIBE, SETUP, TEARDOWN, PLAY, PAUSE\r\n",true);
                                 printf("about to send:\n%s",buffer);
                                 if((snd = send(acc,buffer,sizeof(buffer),0))<0) error("send error\n");
                                 /*Response    =     Status-Line
