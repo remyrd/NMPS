@@ -41,13 +41,13 @@ int main(int argc,char* argv[]){
   Rtspblock rtspdata;
   char *buf;
 
-  const char remy_SDP1[] = 
+  const char remy_SDP1[] =
     "v=0\n"
     "o=remy 123456789 987654321 IN IP4 10.0.2.15\n"
     "s=nmps-session\n"
     "c=IN IP4 10.0.2.15\n"
     "t=0 0\n"
-    "m=video 3001 RTP/AVP 31\r\n"; // strings can be broken into several lines 
+    "m=video 3001 RTP/AVP 31\r\n"; // strings can be broken into several lines
 
   buf = malloc(sizeof(char)* (strlen(buffer)+1));
   /*************************/
@@ -119,39 +119,31 @@ int main(int argc,char* argv[]){
             /**DECIDE WHAT TO DO*/
             switch(rtspdata.method){
             case OPTIONS:
-              bzero(buffer,sizeof(buffer));
-              add_to_buffer(buffer,"RTSP/1.0 200 OK",true);
-              add_to_buffer(buffer,"Cseq: ",false);
-              add_to_buffer(buffer,rtspdata.cseq,true);
-              add_to_buffer(buffer,"Public: DESCRIBE, SETUP, TEARDOWN, PLAY, PAUSE\r\n",true);
-              printf("about to send:\n%s",buffer);
-              if((snd = send(acc,buffer,sizeof(buffer),0))<0) err_exit("send error\n");
-              /*Response    =     Status-Line
-               *(    general-header
-               |     response-header
-               |     entity-header )
-               CRLF
-               [ message-body ]
+                bzero(buffer,sizeof(buffer));
+                add_to_buffer(buffer,"RTSP/1.0 200 OK",true);
+                add_to_buffer(buffer,"Cseq: ",false);
+                add_to_buffer(buffer,rtspdata.cseq,true);
+                add_to_buffer(buffer,"Public: DESCRIBE, SETUP, TEARDOWN, PLAY, PAUSE\r\n",true);
+                printf("about to send:\n%s",buffer);
+                if((snd = send(acc,buffer,sizeof(buffer),0))<0) err_exit("send error\n");
 
-               Status-Line =   RTSP-Version SP Status-Code SP Reason-Phrase CRLF
-               break;*/
+               break;
 
             case DESCRIBE:
-              // err_exit("this case doesn't work properly\n");
-              bzero(buffer,sizeof(buffer));
-	      add_to_buffer(buffer,"RTSP/1.0 200 OK",true);
-	      add_to_buffer(buffer,"CSeq: ",false);
-	      add_to_buffer(buffer,rtspdata.cseq,true);
-	      add_to_buffer(buffer,"Content-Type: ",false);
-	      add_to_buffer(buffer,rtspdata.conttype,true);
-	      bzero(sdpbuff,sizeof(sdpbuff));
-	      sprintf(sdpbuff,"Content-Length: %d\n",strlen(remy_SDP1));
-	      add_to_buffer(sdpbuff,remy_SDP1,false);
-	      add_to_buffer(buffer,sdpbuff,false); // remy_SDP1 ends in \n
-	      printf("about to send:\n%s",buffer);
-	      if((snd = send(acc,buffer,sizeof(buffer),0))<0)
-		err_exit("send error\n");
-	      break;
+                bzero(buffer,sizeof(buffer));
+                add_to_buffer(buffer,"RTSP/1.0 200 OK",true);
+                add_to_buffer(buffer,"CSeq: ",false);
+                add_to_buffer(buffer,rtspdata.cseq,true);
+                add_to_buffer(buffer,"Content-Type: ",false);
+                add_to_buffer(buffer,rtspdata.accept,true);
+                sprintf(sdpbuff,"Content-Length: %d\r\n\r\n",strlen(remy_SDP1));
+                add_to_buffer(sdpbuff,remy_SDP1,false);
+                add_to_buffer(buffer,sdpbuff,false);// remy_SDP1 ends in \n
+                add_to_buffer(buffer,"",true);
+                printf("about to send:\n%s",buffer);
+                if((snd = send(acc,buffer,sizeof(buffer),0))<0)
+                err_exit("send error\n");
+            break;
 
             case PLAY:
               break;
@@ -160,9 +152,9 @@ int main(int argc,char* argv[]){
             bzero(buffer,sizeof(buffer));
           }
         }
-      
+
     }
-    
+
   }
 
 } // m a i n ()

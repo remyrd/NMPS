@@ -37,6 +37,7 @@ typedef struct rtspblock {
   char* session;         // Session:
   char* transport;       // Transport:
   char* unsupp;          // Unsupported:
+  char* accept;          // Accept
 } Rtspblock;
 
 /*

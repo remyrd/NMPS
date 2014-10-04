@@ -62,6 +62,7 @@ int rtspanalyze(char* p_buf, Rtspblock* p_data)
   p_data->session = strstr(p_buf,"Session:");
   p_data->transport = strstr(p_buf,"Transport:");
   p_data->unsupp = strstr(p_buf,"Unsupported:");
+  p_data->accept = strstr(p_buf,"Accept:");
 
   // Check for false match (one string is the substring of the other)
   cz = strstr(p_buf,"Proxy-Require:");
@@ -137,6 +138,11 @@ int rtspanalyze(char* p_buf, Rtspblock* p_data)
     {
       replace_return_with_null(p_data->unsupp);
       p_data->unsupp += strlen("Unsupported: ");
+    }
+    if (p_data->accept)
+    {
+      replace_return_with_null(p_data->accept);
+      p_data->accept += strlen("Accept: ");
     }
   /* Check if required fields were found. Set URL pointer by adding
    * the method string length + 1 (space) to the method pointer value.

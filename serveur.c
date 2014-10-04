@@ -27,11 +27,9 @@ int main(int argc,char* argv[]){
 
     int sockfd, newsockfd, portno;
     socklen_t clilen;
-<<<<<<< HEAD
+
     char buffer[5000], sdpbuff[200], sdplen[5];
-=======
-    char buffer[5000];
->>>>>>> 8ed67bb61d0e0b3a76678f96522515629b3540f8
+
     /**rtsp analyze variables**/
     int result;
     Rtspblock rtspdata;
@@ -119,10 +117,10 @@ int main(int argc,char* argv[]){
 
                                 Status-Line =   RTSP-Version SP Status-Code SP Reason-Phrase CRLF
                                 break;*/
-<<<<<<< HEAD
+
                             case DESCRIBE:
                                 error("this case doesn't work properly\n");
-                                /*bzero(buffer,sizeof(buffer));
+                                bzero(buffer,sizeof(buffer));
                                 add_to_buffer(buffer,"RTSP/1.0 200 OK",true);
                                 add_to_buffer(buffer,strcat("CSeq: ",rtspdata.cseq),true);
                                 add_to_buffer(buffer,strcat("Content-Type: ",rtspdata.conttype),true);
@@ -135,12 +133,9 @@ int main(int argc,char* argv[]){
                                 add_to_buffer(buffer,sdpbuff,true);
 
                                 printf("about to send:\n%s",buffer);
-                                if((snd = send(acc,buffer,sizeof(buffer),0))<0) error("send error\n");*/
+                                if((snd = send(acc,buffer,sizeof(buffer),0))<0) error("send error\n");
                                 //break;
-=======
-                            case DESCRIBE:
-                                break;
->>>>>>> 8ed67bb61d0e0b3a76678f96522515629b3540f8
+
                             case PLAY:
                                 break;
                         }
