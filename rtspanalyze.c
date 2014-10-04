@@ -17,7 +17,8 @@ void replace_return_with_null(char*);
 int rtspanalyze(char* p_buf, Rtspblock* p_data)
 {
   int retval = 0;
-  char* ptr;
+  char* strplace;
+  char* cz;
 
   if (!p_buf || !p_data)
     return -1;
@@ -25,45 +26,56 @@ int rtspanalyze(char* p_buf, Rtspblock* p_data)
   bzero(p_data, sizeof(Rtspblock));
 
   // Put the method into a number
-  if ((ptr = strstr(p_buf, "OPTIONS")) != NULL)
+  if ((strplace = strstr(p_buf, "OPTIONS")) != NULL)
     p_data->method = OPTIONS;
-  else if ((ptr = strstr(p_buf, "DESCRIBE")) != NULL)
+  else if ((strplace = strstr(p_buf, "DESCRIBE")) != NULL)
     p_data->method = DESCRIBE;
-  else if ((ptr = strstr(p_buf, "ANNOUNCE")) != NULL)
+  else if ((strplace = strstr(p_buf, "ANNOUNCE")) != NULL)
     p_data->method = ANNOUNCE;
-  else if ((ptr = strstr(p_buf, "SETUP")) != NULL)
+  else if ((strplace = strstr(p_buf, "SETUP")) != NULL)
     p_data->method = SETUP;
-  else if ((ptr = strstr(p_buf, "PLAY")) != NULL)
+  else if ((strplace = strstr(p_buf, "PLAY")) != NULL)
     p_data->method = PLAY;
-  else if ((ptr = strstr(p_buf, "PAUSE")) != NULL)
+  else if ((strplace = strstr(p_buf, "PAUSE")) != NULL)
     p_data->method = PAUSE;
-  else if ((ptr = strstr(p_buf, "TEARDOWN")) != NULL)
+  else if ((strplace = strstr(p_buf, "TEARDOWN")) != NULL)
     p_data->method = TEARDOWN;
-  else if ((ptr = strstr(p_buf, "GET_PARAMETER")) != NULL)
+  else if ((strplace = strstr(p_buf, "GET_PARAMETER")) != NULL)
     p_data->method = GET_PARAMETER;
-  else if ((ptr = strstr(p_buf, "SET_PARAMETER")) != NULL)
+  else if ((strplace = strstr(p_buf, "SET_PARAMETER")) != NULL)
     p_data->method = SET_PARAMETER;
-  else if ((ptr = strstr(p_buf, "REDIRECT")) != NULL)
+  else if ((strplace = strstr(p_buf, "REDIRECT")) != NULL)
     p_data->method = REDIRECT;
-  else if ((ptr = strstr(p_buf, "RECORD")) != NULL)
+  else if ((strplace = strstr(p_buf, "RECORD")) != NULL)
     p_data->method = RECORD;
   else
     return 1;
 
-  // Search for headers. Brute-force search that does not take into account
-  // the fact that "Require:" is a substring of "Proxy-Require:"
+  // Search for headers. Unambiguous cases first:
   p_data->conn = strstr(p_buf,"Connection:");
   p_data->contenc = strstr(p_buf,"Content-Encoding:");
   p_data->contlang = strstr(p_buf,"Content-Language");
   p_data->contlen = strstr(p_buf,"Content-Length:");
   p_data->conttype = strstr(p_buf,"Content-Type:");
   p_data->cseq = strstr(p_buf,"CSeq:");
-  p_data->proxyrequire = strstr(p_buf,"Proxy-Require:");
-  p_data->require = strstr(p_buf,"Require:");// <---- DOES NOT WORK, needs logic
   p_data->rtpinfo = strstr(p_buf,"RTP-Info:");
   p_data->session = strstr(p_buf,"Session:");
   p_data->transport = strstr(p_buf,"Transport:");
   p_data->unsupp = strstr(p_buf,"Unsupported:");
+
+  // Check for false match (one string is the substring of the other)
+  cz = strstr(p_buf,"Proxy-Require:");
+  if (cz)
+    {
+      p_data->proxyrequire = cz;
+      cz = strstr(p_buf,"Require:");
+      if (cz && cz < p_data->proxyrequire)
+	p_data->require = cz;
+      else
+	p_data->require = strstr(p_data->proxyrequire + 7,"Require: ");
+    }
+  else
+    p_data->require = strstr(p_buf,"Require: ");
 
   // Adjust the pointer and null-terminate the headers.
   if (p_data->conn)
@@ -132,37 +144,37 @@ int rtspanalyze(char* p_buf, Rtspblock* p_data)
   switch (p_data->method)
     {
     case OPTIONS:
-      p_data->url = ptr + 8;
+      p_data->url = strplace + 8;
       break;
     case DESCRIBE:
-      p_data->url = ptr + 9;
+      p_data->url = strplace + 9;
       break;
     case ANNOUNCE:
-      p_data->url = ptr + 9;
+      p_data->url = strplace + 9;
       break;
     case SETUP:
-      p_data->url = ptr + 6;
+      p_data->url = strplace + 6;
       break;
     case PLAY:
-      p_data->url = ptr + 5;
+      p_data->url = strplace + 5;
       break;
     case PAUSE:
-      p_data->url = ptr + 6;
+      p_data->url = strplace + 6;
       break;
     case TEARDOWN:
-      p_data->url = ptr + 9;
+      p_data->url = strplace + 9;
       break;
     case GET_PARAMETER:
-      p_data->url = ptr + 14;
+      p_data->url = strplace + 14;
       break;
     case SET_PARAMETER:
-      p_data->url = ptr + 14;
+      p_data->url = strplace + 14;
       break;
     case REDIRECT:
-      p_data->url = ptr + 9;
+      p_data->url = strplace + 9;
       break;
     case RECORD:
-      p_data->url = ptr + 7;
+      p_data->url = strplace + 7;
       break;
 
     case 0: // never, if handled above already
@@ -170,8 +182,8 @@ int rtspanalyze(char* p_buf, Rtspblock* p_data)
       return 1;
     }
   // Null-terminate the URL:
-  if ((ptr = strstr(ptr, "RTSP/1.0")) != NULL)
-    *(ptr - 1) = '\0';
+  if ((strplace = strstr(strplace, "RTSP/1.0")) != NULL)
+    *(strplace - 1) = '\0';
 
   return retval;
 }

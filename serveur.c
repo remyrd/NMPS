@@ -20,14 +20,14 @@ void error(const char *msg)
 
 void add_to_buffer(char *dest,char *src,bool endline){
     strcat(dest,src);
-    if (endline) strcat(dest,"\n");
+    if (endline) strcat(dest,"\r\n");
 }
 
 int main(int argc,char* argv[]){
 
     int sockfd, newsockfd, portno;
     socklen_t clilen;
-    char buffer[5000];
+    char buffer[5000], sdpbuff[200], sdplen[5];
     /**rtsp analyze variables**/
     int result;
     Rtspblock rtspdata;
@@ -103,7 +103,7 @@ int main(int argc,char* argv[]){
                                 add_to_buffer(buffer,"RTSP/1.0 200 OK",true);
                                 add_to_buffer(buffer,"Cseq: ",false);
                                 add_to_buffer(buffer,rtspdata.cseq,true);
-                                add_to_buffer(buffer,"Public: DESCRIBE, SETUP, TEARDOWN, PLAY, PAUSE\n",true);
+                                add_to_buffer(buffer,"Public: DESCRIBE, SETUP, TEARDOWN, PLAY, PAUSE\r\n",true);
                                 printf("about to send:\n%s",buffer);
                                 if((snd = send(acc,buffer,sizeof(buffer),0))<0) error("send error\n");
                                 /*Response    =     Status-Line
@@ -116,7 +116,22 @@ int main(int argc,char* argv[]){
                                 Status-Line =   RTSP-Version SP Status-Code SP Reason-Phrase CRLF
                                 break;*/
                             case DESCRIBE:
-                                break;
+                                error("this case doesn't work properly\n");
+                                /*bzero(buffer,sizeof(buffer));
+                                add_to_buffer(buffer,"RTSP/1.0 200 OK",true);
+                                add_to_buffer(buffer,strcat("CSeq: ",rtspdata.cseq),true);
+                                add_to_buffer(buffer,strcat("Content-Type: ",rtspdata.conttype),true);
+
+                                bzero(sdpbuff,sizeof(sdpbuff));
+                                add_to_buffer(sdpbuff,
+                                "v=0\no=remy 123456789 987654321 IN IP4 10.0.2.15\ns=nmps-session\nc=IN IP4 10.0.2.15\nt=0 0\nm=video 3001 RTP/AVP 31\r\n",true);
+                                sprintf(sdplen,"%d",sizeof("v=0\no=remy 123456789 987654321 IN IP4 10.0.2.15\ns=nmps-session\nc=IN IP4 10.0.2.15\nt=0 0\nm=video 3001 RTP/AVP 31\r\n"));
+                                add_to_buffer(buffer,strcat("Content-Length: ",sdplen),true);
+                                add_to_buffer(buffer,sdpbuff,true);
+
+                                printf("about to send:\n%s",buffer);
+                                if((snd = send(acc,buffer,sizeof(buffer),0))<0) error("send error\n");*/
+                                //break;
                             case PLAY:
                                 break;
                         }
