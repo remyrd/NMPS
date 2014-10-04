@@ -42,12 +42,12 @@ int main(int argc,char* argv[]){
   char *buf;
 
   const char remy_SDP1[] =
-    "v=0\n"
-    "o=remy 123456789 987654321 IN IP4 10.0.2.15\n"
-    "s=nmps-session\n"
-    "c=IN IP4 10.0.2.15\n"
-    "t=0 0\n"
-    "m=video 3001 RTP/AVP 31\r\n"; // strings can be broken into several lines
+    "v=0\r\n"
+    "o=remy 123456789 987654321 IN IP4 10.0.2.15\r\n"
+    "s=nmps-session\r\n"
+    "c=IN IP4 10.0.2.15\r\n"
+    "t=0 0\r\n"
+    "m=video 3001 RTP/AVP 31\r\n\r\n"; // strings can be broken into several lines
 
   buf = malloc(sizeof(char)* (strlen(buffer)+1));
   /*************************/
@@ -139,7 +139,6 @@ int main(int argc,char* argv[]){
                 sprintf(sdpbuff,"Content-Length: %d\r\n\r\n",strlen(remy_SDP1));
                 add_to_buffer(sdpbuff,remy_SDP1,false);
                 add_to_buffer(buffer,sdpbuff,false);// remy_SDP1 ends in \n
-                add_to_buffer(buffer,"",true);
                 printf("about to send:\n%s",buffer);
                 if((snd = send(acc,buffer,sizeof(buffer),0))<0)
                 err_exit("send error\n");
