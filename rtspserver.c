@@ -137,7 +137,6 @@ int main(int argc,char* argv[]){
             case DESCRIBE:
                 bzero(buffer,sizeof(buffer));
                 add_to_buffer(buffer,"RTSP/1.0 200 OK",true);
-
                 add_to_buffer(buffer,"Content-Type: ",false);
                 add_to_buffer(buffer,rtspdata.accept,false);
                 add_to_buffer(buffer,"\n",false);
@@ -153,11 +152,23 @@ int main(int argc,char* argv[]){
                 if((snd = send(acc,buffer,strlen(buffer),0))<0)
                 err_exit("send error\n");
             break;
-
+            case SETUP:
+                bzero(buffer,sizeof(buffer));
+                add_to_buffer(buffer,"RTSP/1.0 200 OK",true);
+                add_to_buffer(buffer,"Transport: ",false);
+                add_to_buffer(buffer,rtspdata.transport,false);
+                add_to_buffer(buffer,"\n",false);
+                add_to_buffer(buffer,";server_port=3000-3001\n",false);
+                add_to_buffer(buffer,"Cseq: ",false);
+                add_to_buffer(buffer,rtspdata.cseq,true);
+                add_to_buffer(buffer,"\r\n",false);
+                printf("about to send:\n%s",buffer);
+                if((snd = send(acc,buffer,strlen(buffer),0))<0)
+                err_exit("send error\n");
+            break;
             case PLAY:
             break;
-            case SETUP:
-            break;
+
             }
             bzero(buf,sizeof(buf));
             bzero(buffer,sizeof(buffer));
