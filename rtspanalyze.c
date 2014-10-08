@@ -52,6 +52,7 @@ int rtspanalyze(char* p_buf, Rtspblock* p_data)
     return 1;
 
   // Search for headers. Unambiguous cases first:
+  p_data->accept = strstr(p_buf,"Accept:");
   p_data->conn = strstr(p_buf,"Connection:");
   p_data->contenc = strstr(p_buf,"Content-Encoding:");
   p_data->contlang = strstr(p_buf,"Content-Language");
@@ -62,7 +63,6 @@ int rtspanalyze(char* p_buf, Rtspblock* p_data)
   p_data->session = strstr(p_buf,"Session:");
   p_data->transport = strstr(p_buf,"Transport:");
   p_data->unsupp = strstr(p_buf,"Unsupported:");
-  p_data->accept = strstr(p_buf,"Accept:");
 
   // Check for false match (one string is the substring of the other)
   cz = strstr(p_buf,"Proxy-Require:");
@@ -79,6 +79,11 @@ int rtspanalyze(char* p_buf, Rtspblock* p_data)
     p_data->require = strstr(p_buf,"Require: ");
 
   // Adjust the pointer and null-terminate the headers.
+  if (p_data->accept)
+    {
+      replace_return_with_null(p_data->accept);
+      p_data->accept += strlen("Accept: ");
+    }
   if (p_data->conn)
     {
       replace_return_with_null(p_data->conn);
@@ -139,11 +144,6 @@ int rtspanalyze(char* p_buf, Rtspblock* p_data)
       replace_return_with_null(p_data->unsupp);
       p_data->unsupp += strlen("Unsupported: ");
     }
-    if (p_data->accept)
-    {
-      replace_return_with_null(p_data->accept);
-      p_data->accept += strlen("Accept: ");
-    }
   /* Check if required fields were found. Set URL pointer by adding
    * the method string length + 1 (space) to the method pointer value.
    */
@@ -196,7 +196,10 @@ int rtspanalyze(char* p_buf, Rtspblock* p_data)
 
 void replace_return_with_null(char *p_str)
 {
-  char *retplace;
-  if ((retplace = strchr(p_str, '\n')) != NULL)
-    *retplace = '\0';
+  char* crplace = strchr(p_str, '\r');
+  char* lfplace = strchr(p_str, '\n');
+  if (crplace)
+    *crplace = '\0';
+  if (lfplace)
+    *lfplace = '\0';
 }

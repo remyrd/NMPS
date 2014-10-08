@@ -25,6 +25,7 @@
 typedef struct rtspblock {
   int method;            // The method, as an integer (see above)
   char* url;             // The URL after the method (add string length)
+  char* accept;          // Accept:
   char* conn;            // Connection:
   char* contenc;         // Content-Encoding:
   char* contlang;        // Content-Language:
@@ -37,7 +38,6 @@ typedef struct rtspblock {
   char* session;         // Session:
   char* transport;       // Transport:
   char* unsupp;          // Unsupported:
-  char* accept;          // Accept
 } Rtspblock;
 
 /*
