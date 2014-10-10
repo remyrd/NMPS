@@ -37,7 +37,7 @@ int main(int argc,char* argv[]){
     // int newsockfd;
     socklen_t clilen;
     char buffer[1024], buf[1024], sdpbuff[80],rtp_out[200],rtp_in[200],databuff[5000]; // sdplen[5];
-    /**rtsp analyze variables**/
+    /**rtsp variables**/
     int result;
     Rtspblock rtspdata;
     struct sockaddr_in serv_addr, cli_addr;
@@ -59,7 +59,7 @@ int main(int argc,char* argv[]){
     //printf("remy_SDP1(%zu chars):%s\n",strlen(remy_SDP1),remy_SDP1);
     strcat(remy_SDP1,"a=recvonly\r\n");
     //printf("remy_SDP1(%zu chars):%s\n",strlen(remy_SDP1),remy_SDP1);
-    strcat(remy_SDP1,"m=video 3001 RTP/AVP 31\r\n");
+    strcat(remy_SDP1,"m=video 3000 RTP/AVP 31\r\n");
     //printf("remy_SDP1(%zu chars):%s\n",strlen(remy_SDP1),remy_SDP1);
 
     if (argc < 2) {
@@ -112,6 +112,8 @@ int main(int argc,char* argv[]){
             close(sockfd);
             int rcv,snd,rtp_pid=1,fd[2];
             pipe(fd);
+            Rtp_packet rtp_packet;
+            Rtp_header rtp_header;
             for ( ; ; )
             {
                 bzero(buf,sizeof(buf));
@@ -201,48 +203,53 @@ int main(int argc,char* argv[]){
                         }
                     break;
                     case PLAY:
+                        bzero(buffer,sizeof(buffer));
                         add_to_buffer(buffer,"RTSP/1.0 200 OK",true);
                         add_to_buffer(buffer,"Cseq: ",false);
                         if(rtspdata.cseq != NULL)
                             add_to_buffer(buffer,rtspdata.cseq,true);
                         else
                             add_to_buffer(buffer,"CSEQ_IS_MISSING",true);
+                        add_to_buffer(buffer,"Session: 26101992;timeout=5",true);
                         add_to_buffer(buffer,"\r\n",false);
-                        write(fd[1],"4",strlen("SETUP")+1);//write on pipe
+                        printf("about to send:\n%s",buffer);
+                        if((snd = send(acc,buffer,strlen(buffer),0))<0)
+                                err_exit("send error\n");
+                        write(fd[1],"5",strlen("PLAY")+1);//write on pipe
                     break;
                     }//switch/case
                 }//decide what to do
+                /*********************************************
+                 RTP
+                 ***************************************/
                 if(rtp_pid==0){/**RTP loop*/
                     bzero(rtp_in,sizeof(rtp_in));
                     int nbytes,old_command=-1;
                     close(fd[1]);//close output
+                    /**UDP SOCKET*/
                     int dataSocket = socket (AF_INET, SOCK_DGRAM, 0);
                     if(dataSocket<0) {printf("error socket creation\n");exit(-1);}
                     int reuse=1;
                     setsockopt(dataSocket,SOL_SOCKET,SO_REUSEADDR,&reuse,sizeof(reuse));
 
-                    struct sockaddr_in dataServer_addr;
-                    memset((char*)&dataServer_addr,0,sizeof(dataServer_addr));
-                    dataServer_addr.sin_family=AF_INET;
                     struct sockaddr_in dataClient_addr;
                     memset((char*)&dataClient_addr,0,sizeof(dataClient_addr));
                     dataClient_addr.sin_family=AF_INET;
 
-                    int dataPort=portno+1;
-                    dataServer_addr.sin_port=htons(dataPort);
-                    dataServer_addr.sin_addr.s_addr=INADDR_ANY;
+                    int dataPort=portno;
+                    dataClient_addr.sin_port=htons(dataPort);
+                    dataClient_addr.sin_addr.s_addr=INADDR_ANY;
                     socklen_t clientSize = sizeof(dataClient_addr);
-                    socklen_t serverSize = sizeof(dataServer_addr);
+
+                    u_int16_t seq=0;
                     for(;;){
                         if((nbytes=read(fd[0],&rtp_in,sizeof(rtp_in)))<0){//read from the pipe
                             err_exit("Read error\n");
                             exit(0);}
-
-                            switch(atoi(rtp_in)){
+                            /**TODO get the ffmpeg input file* imagebuffer=popen("ffmpeg command",r);*/
+                            switch(atoi(rtp_in)){//determine command from RTSP pipe
                                 case SETUP:
                                     if(old_command!=SETUP){
-                                        printf("setup ok!\n");
-                                        /**UDP Socket!*/
 
                                         /** Open what we want to send*/
                                         int filesize,steps,sentsize,remaining,j,k;
@@ -261,16 +268,17 @@ int main(int argc,char* argv[]){
                                         exit(-1);
                                     }
                                     old_command=PLAY;
+                                    seq++;
                                 break;
                                 case PAUSE:
                                 break;
                                 case TEARDOWN:
                                 break;
-                            }
+                            }//RTP switch/case
 
-                    }
+                    }//RTP loop
 
-                }
+                }//RTP second child process
             }//for ()
         }//RTSP child process
     }//FDSET activated

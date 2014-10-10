@@ -40,6 +40,26 @@ typedef struct rtspblock {
   char* unsupp;          // Unsupported:
 } Rtspblock;
 
+typedef struct rtpheader{
+    unsigned int version:2;
+    unsigned int p:1;
+    unsigned int x:1;
+    unsigned int cc:4;
+    unsigned int m:1;
+    unsigned int pt:7;
+
+    unsigned int seq:16;
+    unsigned int timestamp:32;
+    unsigned int ssrc:32;
+    unsigned int csrc:32;
+} Rtp_header;
+
+typedef struct rtppacket
+{
+    Rtp_header header;
+    char* payload;
+    long payload_len;
+} Rtp_packet;
 /*
  * Function prototypes
  */
