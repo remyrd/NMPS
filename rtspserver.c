@@ -59,7 +59,7 @@ int main(int argc,char* argv[]){
     //printf("remy_SDP1(%zu chars):%s\n",strlen(remy_SDP1),remy_SDP1);
     strcat(remy_SDP1,"a=recvonly\r\n");
     //printf("remy_SDP1(%zu chars):%s\n",strlen(remy_SDP1),remy_SDP1);
-    strcat(remy_SDP1,"m=video 3000 RTP/AVP 31\r\n");
+    strcat(remy_SDP1,"m=video 3010 RTP/AVP 31\r\n");
     //printf("remy_SDP1(%zu chars):%s\n",strlen(remy_SDP1),remy_SDP1);
 
     if (argc < 2) {
@@ -187,7 +187,7 @@ int main(int argc,char* argv[]){
                                 add_to_buffer(buffer,rtspdata.transport,false);
                             else
                                 add_to_buffer(buffer,"TRANSPORT_IS_MISSING",false);
-                            add_to_buffer(buffer,";server_port=3000-3001",true);
+                            add_to_buffer(buffer,";server_port=3010-3011",true);
                             add_to_buffer(buffer,"Cseq: ",false);
                             if(rtspdata.cseq != NULL)
                                 add_to_buffer(buffer,rtspdata.cseq,true);
@@ -199,7 +199,7 @@ int main(int argc,char* argv[]){
                             printf("about to send:\n%s",buffer);
                             if((snd = send(acc,buffer,strlen(buffer),0))<0)
                                 err_exit("send error\n");
-                            write(fd[1],"4",strlen("SETUP")+1);//write on pipe
+                            write(fd[1],"4",2);//write on pipe
                         }
                     break;
                     case PLAY:
@@ -215,7 +215,10 @@ int main(int argc,char* argv[]){
                         printf("about to send:\n%s",buffer);
                         if((snd = send(acc,buffer,strlen(buffer),0))<0)
                                 err_exit("send error\n");
-                        write(fd[1],"5",strlen("PLAY")+1);//write on pipe
+                        write(fd[1],"5",2);//write on pipe
+                    break;
+                    case TEARDOWN:
+                        write(fd[1],"7",2);
                     break;
                     }//switch/case
                 }//decide what to do
@@ -236,43 +239,55 @@ int main(int argc,char* argv[]){
                     memset((char*)&dataClient_addr,0,sizeof(dataClient_addr));
                     dataClient_addr.sin_family=AF_INET;
 
-                    int dataPort=portno;
+                    int dataPort=portno+10;
                     dataClient_addr.sin_port=htons(dataPort);
                     dataClient_addr.sin_addr.s_addr=INADDR_ANY;
                     socklen_t clientSize = sizeof(dataClient_addr);
 
-                    u_int16_t seq=0;
                     for(;;){
                         if((nbytes=read(fd[0],&rtp_in,sizeof(rtp_in)))<0){//read from the pipe
                             err_exit("Read error\n");
                             exit(0);}
-                            /**TODO get the ffmpeg input file* imagebuffer=popen("ffmpeg command",r);*/
+                            /**TODO ***************************************
+                            get the ffmpeg input file* imagebuffer=popen("ffmpeg command",r);
+                            ******************************************************/
+                            printf("RTP: %d\n",atoi(rtp_in));
                             switch(atoi(rtp_in)){//determine command from RTSP pipe
                                 case SETUP:
-                                    if(old_command!=SETUP){
 
+
+                                    if(old_command!=SETUP){
+                                        /**Construct first rtp packet*/
+                                        rtp_header.seq=0;
+                                        rtp_header.version=2;
+                                        rtp_header.p=0;
+                                        rtp_header.x=0;
+                                        rtp_header.pt=31;
+                                        rtp_header.cc=0;
+                                        rtp_header.m=0;
+                                        rtp_packet.header=rtp_header;
+                                        rtp_packet.payload=databuff;
+                                        rtp_packet.payload_len=(long)sizeof(rtp_packet.payload);
+                                        printf("DATADATADATA\n");
                                         /** Open what we want to send*/
-                                        int filesize,steps,sentsize,remaining,j,k;
+                                        /*int filesize,steps,sentsize,remaining,j,k;
                                         FILE *image=fopen("my_picture.jpeg","r");
-                                        /*fseek(image,0,SEEK_END);
-                                        filesize=ftell(image);
-                                        fseek(image,0,SEEK_SET);//determine filesize*/
+
                                         int im=1;
-                                        im=fread(databuff,5000,1,image);
+                                        im=fread(databuff,5000,1,image);*/
                                         old_command=SETUP;//set old command
                                     }
                                 break;
                                 case PLAY:
-                                    if((snd=sendto(dataSocket,databuff,strlen(databuff),0,(struct sockaddr *)&dataClient_addr,clientSize))==-1) {
-                                        printf("send error\n");
-                                        exit(-1);
-                                    }
+                                    if((snd=sendto(dataSocket,&rtp_packet,sizeof(rtp_packet),0,(struct sockaddr *)&dataClient_addr,clientSize))==-1)
+                                        err_exit("send error\n");
                                     old_command=PLAY;
-                                    seq++;
+                                    rtp_header.seq++;
                                 break;
                                 case PAUSE:
                                 break;
                                 case TEARDOWN:
+                                    exit(0);
                                 break;
                             }//RTP switch/case
 
