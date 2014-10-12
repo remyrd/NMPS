@@ -218,7 +218,19 @@ int main(int argc,char* argv[]){
                         write(fd[1],"5",2);//write on pipe
                     break;
                     case TEARDOWN:
+                        bzero(buffer,sizeof(buffer));
                         write(fd[1],"7",2);
+                        add_to_buffer(buffer,"RTSP/1.0 200 OK",true);
+                        add_to_buffer(buffer,"Cseq: ",false);
+                        if(rtspdata.cseq != NULL)
+                            add_to_buffer(buffer,rtspdata.cseq,true);
+                        else
+                            add_to_buffer(buffer,"CSEQ_IS_MISSING",true);
+                        add_to_buffer(buffer,"Session: 26101992",true);
+                        add_to_buffer(buffer,"\r\n",false);
+                        printf("about to send:\n%s",buffer);
+                        if((snd = send(acc,buffer,strlen(buffer),0))<0)
+                                err_exit("send error\n");
                     break;
                     }//switch/case
                 }//decide what to do
@@ -227,22 +239,28 @@ int main(int argc,char* argv[]){
                  ***************************************/
                 if(rtp_pid==0){/**RTP loop*/
                     bzero(rtp_in,sizeof(rtp_in));
-                    int nbytes,old_command=-1;
+                    int nbytes,old_command=-1,dataSocket;
                     close(fd[1]);//close output
                     /**UDP SOCKET*/
-                    int dataSocket = socket (AF_INET, SOCK_DGRAM, 0);
-                    if(dataSocket<0) {printf("error socket creation\n");exit(-1);}
-                    int reuse=1;
-                    setsockopt(dataSocket,SOL_SOCKET,SO_REUSEADDR,&reuse,sizeof(reuse));
-
+                    if ((dataSocket=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))==-1) err_exit("udp socket error\n");
                     struct sockaddr_in dataClient_addr;
                     memset((char*)&dataClient_addr,0,sizeof(dataClient_addr));
-                    dataClient_addr.sin_family=AF_INET;
+                    //int reuse=1;
+                    //setsockopt(dataSocket,SOL_SOCKET,SO_REUSEADDR,&reuse,sizeof(reuse));
 
-                    int dataPort=portno+10;
+                    dataClient_addr.sin_family=AF_INET;
+                    int dataPort=portno;
+                    printf("%d\n",dataPort);
                     dataClient_addr.sin_port=htons(dataPort);
-                    dataClient_addr.sin_addr.s_addr=INADDR_ANY;
                     socklen_t clientSize = sizeof(dataClient_addr);
+
+                    if (inet_aton("10.0.2.15", &dataClient_addr.sin_addr)==0) {
+                        fprintf(stderr, "inet_aton() failed\n");
+                        exit(1);
+                    }
+
+                    /**Open the pipe*/
+                    FILE *stream=popen("ls -l myfifo","r");
 
                     for(;;){
                         if((nbytes=read(fd[0],&rtp_in,sizeof(rtp_in)))<0){//read from the pipe
@@ -266,19 +284,14 @@ int main(int argc,char* argv[]){
                                         rtp_header.cc=0;
                                         rtp_header.m=0;
                                         rtp_packet.header=rtp_header;
-                                        rtp_packet.payload=databuff;
-                                        rtp_packet.payload_len=(long)sizeof(rtp_packet.payload);
-                                        printf("DATADATADATA\n");
-                                        /** Open what we want to send*/
-                                        /*int filesize,steps,sentsize,remaining,j,k;
-                                        FILE *image=fopen("my_picture.jpeg","r");
-
-                                        int im=1;
-                                        im=fread(databuff,5000,1,image);*/
+                                        //rtp_packet.payload=databuff;
+                                        //rtp_packet.payload_len=(long)sizeof(rtp_packet.payload);
                                         old_command=SETUP;//set old command
                                     }
                                 break;
                                 case PLAY:
+                                    fgets(rtp_packet.payload,64000,stream);
+                                    printf("stream:\n %s",rtp_packet.payload);
                                     if((snd=sendto(dataSocket,&rtp_packet,sizeof(rtp_packet),0,(struct sockaddr *)&dataClient_addr,clientSize))==-1)
                                         err_exit("send error\n");
                                     old_command=PLAY;
